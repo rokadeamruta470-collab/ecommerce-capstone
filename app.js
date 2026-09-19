@@ -1,7 +1,6 @@
 const API_URL = "https://dummyjson.com/products";
 
-const productContainer =
-    document.getElementById("productContainer");
+const productContainer = document.getElementById("productContainer");
 
 let allProducts = [];
 
@@ -51,8 +50,7 @@ function createControls() {
 
     categories.forEach(category => {
 
-        const option =
-            document.createElement("option");
+        const option = document.createElement("option");
 
         option.value = category;
         option.textContent = category;
@@ -60,13 +58,28 @@ function createControls() {
         categoryFilter.appendChild(option);
     });
 
+    const sortSelect = document.createElement("select");
+
+    sortSelect.id = "sortSelect";
+
+    sortSelect.innerHTML = `
+        <option value="default">Sort By</option>
+        <option value="low">Price: Low to High</option>
+        <option value="high">Price: High to Low</option>
+    `;
+
+    productContainer.parentElement.insertBefore(
+        searchInput,
+        productContainer
+    );
+
     productContainer.parentElement.insertBefore(
         categoryFilter,
         productContainer
     );
 
     productContainer.parentElement.insertBefore(
-        searchInput,
+        sortSelect,
         productContainer
     );
 
@@ -79,6 +92,11 @@ function createControls() {
         "change",
         filterProducts
     );
+
+    sortSelect.addEventListener(
+        "change",
+        filterProducts
+    );
 }
 
 function displayProducts(products) {
@@ -86,17 +104,14 @@ function displayProducts(products) {
     productContainer.innerHTML = "";
 
     if (products.length === 0) {
-
         productContainer.innerHTML =
             "<p>No products found.</p>";
-
         return;
     }
 
     products.forEach(product => {
 
-        const card =
-            document.createElement("div");
+        const card = document.createElement("div");
 
         card.className = "product-card";
 
@@ -133,13 +148,19 @@ function filterProducts() {
     const categoryFilter =
         document.getElementById("categoryFilter");
 
+    const sortSelect =
+        document.getElementById("sortSelect");
+
     const searchText =
         searchInput.value.toLowerCase();
 
     const selectedCategory =
         categoryFilter.value;
 
-    const filteredProducts =
+    const sortValue =
+        sortSelect.value;
+
+    let filteredProducts =
         allProducts.filter(product => {
 
             const matchesSearch =
@@ -154,6 +175,20 @@ function filterProducts() {
             return matchesSearch &&
                    matchesCategory;
         });
+
+    if (sortValue === "low") {
+
+        filteredProducts.sort(
+            (a, b) => a.price - b.price
+        );
+    }
+
+    if (sortValue === "high") {
+
+        filteredProducts.sort(
+            (a, b) => b.price - a.price
+        );
+    }
 
     displayProducts(filteredProducts);
 }
