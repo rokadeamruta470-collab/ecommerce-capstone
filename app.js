@@ -3,10 +3,64 @@ const API_URL = "https://dummyjson.com/products";
 const productContainer =
     document.getElementById("productContainer");
 
+const adminProductContainer =
+    document.getElementById("adminProductContainer");
+
 let allProducts = [];
 
 let cart =
     JSON.parse(localStorage.getItem("cart")) || [];
+
+let savedProducts =
+    JSON.parse(localStorage.getItem("products")) || [];
+
+
+// ============================
+// LOGIN
+// ============================
+
+const loginForm =
+    document.getElementById("loginForm");
+
+const loginMessage =
+    document.getElementById("loginMessage");
+
+loginForm.addEventListener(
+    "submit",
+    function (event) {
+
+        event.preventDefault();
+
+        const username =
+            document.getElementById("username").value;
+
+        const password =
+            document.getElementById("password").value;
+
+        if (username && password) {
+
+            localStorage.setItem(
+                "loggedInUser",
+                username
+            );
+
+            loginMessage.textContent =
+                `Welcome, ${username}! Login successful.`;
+
+            loginForm.reset();
+
+        } else {
+
+            loginMessage.textContent =
+                "Please enter username and password.";
+        }
+    }
+);
+
+
+// ============================
+// LOAD PRODUCTS
+// ============================
 
 async function loadProducts() {
 
@@ -16,18 +70,36 @@ async function loadProducts() {
             await fetch(API_URL);
 
         if (!response.ok) {
-            throw new Error("Failed to load products");
+            throw new Error(
+                "Failed to load products"
+            );
         }
 
         const data =
             await response.json();
 
-        allProducts =
-            data.products.slice(0, 12);
+
+        if (savedProducts.length > 0) {
+
+            allProducts =
+                savedProducts;
+
+        } else {
+
+            allProducts =
+                data.products.slice(0, 12);
+
+            saveProducts();
+        }
+
 
         createControls();
 
         displayProducts(allProducts);
+
+        displayCart();
+
+        displayAdminProducts();
 
     } catch (error) {
 
@@ -39,15 +111,35 @@ async function loadProducts() {
 }
 
 
+// ============================
+// SAVE PRODUCTS
+// ============================
+
+function saveProducts() {
+
+    localStorage.setItem(
+        "products",
+        JSON.stringify(allProducts)
+    );
+}
+
+
+// ============================
+// SEARCH / FILTER / SORT
+// ============================
+
 function createControls() {
 
     const searchInput =
         document.createElement("input");
 
     searchInput.type = "text";
+
     searchInput.placeholder =
         "Search products...";
-    searchInput.id = "searchInput";
+
+    searchInput.id =
+        "searchInput";
 
 
     const categoryFilter =
@@ -75,6 +167,7 @@ function createControls() {
             document.createElement("option");
 
         option.value = category;
+
         option.textContent = category;
 
         categoryFilter.appendChild(option);
@@ -88,9 +181,17 @@ function createControls() {
         "sortSelect";
 
     sortSelect.innerHTML = `
-        <option value="default">Sort By</option>
-        <option value="low">Price: Low to High</option>
-        <option value="high">Price: High to Low</option>
+        <option value="default">
+            Sort By
+        </option>
+
+        <option value="low">
+            Price: Low to High
+        </option>
+
+        <option value="high">
+            Price: High to Low
+        </option>
     `;
 
 
@@ -127,6 +228,10 @@ function createControls() {
 }
 
 
+// ============================
+// DISPLAY PRODUCTS
+// ============================
+
 function displayProducts(products) {
 
     productContainer.innerHTML = "";
@@ -158,7 +263,9 @@ function displayProducts(products) {
 
             <h3>${product.title}</h3>
 
-            <p>${product.description}</p>
+            <p>
+                ${product.description || ""}
+            </p>
 
             <p class="price">
                 $${product.price}
@@ -170,7 +277,9 @@ function displayProducts(products) {
 
             <button
                 onclick="addToCart(${product.id})">
+
                 Add to Cart
+
             </button>
         `;
 
@@ -179,6 +288,10 @@ function displayProducts(products) {
     });
 }
 
+
+// ============================
+// FILTER PRODUCTS
+// ============================
 
 function filterProducts() {
 
@@ -253,7 +366,7 @@ function filterProducts() {
 
 
 // ============================
-// SHOPPING CART
+// ADD TO CART
 // ============================
 
 function addToCart(productId) {
@@ -279,9 +392,17 @@ function addToCart(productId) {
 
     saveCart();
 
-    alert("Product added to cart!");
+    displayCart();
+
+    alert(
+        "Product added to cart!"
+    );
 }
 
+
+// ============================
+// SAVE CART
+// ============================
 
 function saveCart() {
 
@@ -291,5 +412,389 @@ function saveCart() {
     );
 }
 
+
+// ============================
+// DISPLAY CART
+// ============================
+
+function displayCart() {
+
+    const cartContainer =
+        document.getElementById(
+            "cartContainer"
+        );
+
+    const cartTotal =
+        document.getElementById(
+            "cartTotal"
+        );
+
+
+    if (!cartContainer ||
+        !cartTotal) {
+
+        return;
+    }
+
+
+    cartContainer.innerHTML = "";
+
+
+    if (cart.length === 0) {
+
+        cartContainer.innerHTML =
+            "<p>Your cart is empty.</p>";
+
+        cartTotal.textContent =
+            "Total: $0.00";
+
+        return;
+    }
+
+
+    let total = 0;
+
+
+    cart.forEach(item => {
+
+        const product =
+            allProducts.find(
+                product =>
+                    product.id === item.id
+            );
+
+
+        if (!product) {
+            return;
+        }
+
+
+        const itemTotal =
+            product.price *
+            item.quantity;
+
+
+        total += itemTotal;
+
+
+        const cartItem =
+            document.createElement("div");
+
+        cartItem.className =
+            "product-card";
+
+
+        cartItem.innerHTML = `
+            <h3>
+                ${product.title}
+            </h3>
+
+            <p>
+                Price: $${product.price}
+            </p>
+
+            <p>
+                Quantity: ${item.quantity}
+            </p>
+
+            <p>
+                Item Total:
+                $${itemTotal.toFixed(2)}
+            </p>
+
+            <button
+                onclick="removeFromCart(${product.id})">
+
+                Remove
+
+            </button>
+        `;
+
+
+        cartContainer.appendChild(
+            cartItem
+        );
+    });
+
+
+    cartTotal.textContent =
+        `Total: $${total.toFixed(2)}`;
+}
+
+
+// ============================
+// REMOVE FROM CART
+// ============================
+
+function removeFromCart(productId) {
+
+    cart =
+        cart.filter(
+            item => item.id !== productId
+        );
+
+
+    saveCart();
+
+    displayCart();
+}
+
+
+// ============================
+// ADD PRODUCT
+// ============================
+
+const productForm =
+    document.getElementById(
+        "productForm"
+    );
+
+
+productForm.addEventListener(
+    "submit",
+    function (event) {
+
+        event.preventDefault();
+
+
+        const title =
+            document.getElementById(
+                "productTitle"
+            ).value;
+
+
+        const price =
+            Number(
+                document.getElementById(
+                    "productPrice"
+                ).value
+            );
+
+
+        const category =
+            document.getElementById(
+                "productCategory"
+            ).value;
+
+
+        const image =
+            document.getElementById(
+                "productImage"
+            ).value;
+
+
+        const newProduct = {
+
+            id: Date.now(),
+
+            title: title,
+
+            price: price,
+
+            category: category,
+
+            thumbnail: image,
+
+            description:
+                "Custom product added by admin."
+        };
+
+
+        allProducts.push(
+            newProduct
+        );
+
+
+        saveProducts();
+
+        displayProducts(
+            allProducts
+        );
+
+        displayAdminProducts();
+
+        productForm.reset();
+
+
+        alert(
+            "Product added successfully!"
+        );
+    }
+);
+
+
+// ============================
+// DISPLAY ADMIN PRODUCTS
+// ============================
+
+function displayAdminProducts() {
+
+    adminProductContainer.innerHTML = "";
+
+
+    allProducts.forEach(product => {
+
+        const item =
+            document.createElement("div");
+
+        item.className =
+            "product-card";
+
+
+        item.innerHTML = `
+            <h3>
+                ${product.title}
+            </h3>
+
+            <p>
+                Price: $${product.price}
+            </p>
+
+            <p>
+                Category: ${product.category}
+            </p>
+
+            <button
+                onclick="editProduct(${product.id})">
+
+                Edit
+
+            </button>
+
+            <button
+                onclick="deleteProduct(${product.id})">
+
+                Delete
+
+            </button>
+        `;
+
+
+        adminProductContainer.appendChild(
+            item
+        );
+    });
+}
+
+
+// ============================
+// EDIT PRODUCT
+// ============================
+
+function editProduct(productId) {
+
+    const product =
+        allProducts.find(
+            product =>
+                product.id === productId
+        );
+
+
+    if (!product) {
+        return;
+    }
+
+
+    const newTitle =
+        prompt(
+            "Enter new product name:",
+            product.title
+        );
+
+
+    if (newTitle === null) {
+        return;
+    }
+
+
+    const newPrice =
+        prompt(
+            "Enter new price:",
+            product.price
+        );
+
+
+    if (newPrice === null) {
+        return;
+    }
+
+
+    product.title =
+        newTitle;
+
+    product.price =
+        Number(newPrice);
+
+
+    saveProducts();
+
+    displayProducts(
+        allProducts
+    );
+
+    displayAdminProducts();
+
+    displayCart();
+
+
+    alert(
+        "Product updated successfully!"
+    );
+}
+
+
+// ============================
+// DELETE PRODUCT
+// ============================
+
+function deleteProduct(productId) {
+
+    const confirmDelete =
+        confirm(
+            "Are you sure you want to delete this product?"
+        );
+
+
+    if (!confirmDelete) {
+        return;
+    }
+
+
+    allProducts =
+        allProducts.filter(
+            product =>
+                product.id !== productId
+        );
+
+
+    cart =
+        cart.filter(
+            item =>
+                item.id !== productId
+        );
+
+
+    saveProducts();
+
+    saveCart();
+
+    displayProducts(
+        allProducts
+    );
+
+    displayAdminProducts();
+
+    displayCart();
+
+
+    alert(
+        "Product deleted successfully!"
+    );
+}
+
+
+// ============================
+// START APPLICATION
+// ============================
 
 loadProducts();
