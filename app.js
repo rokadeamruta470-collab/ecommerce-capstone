@@ -1,25 +1,36 @@
 const API_URL = "https://dummyjson.com/products";
 
-const productContainer = document.getElementById("productContainer");
+const productContainer =
+    document.getElementById("productContainer");
 
 let allProducts = [];
 
+let cart =
+    JSON.parse(localStorage.getItem("cart")) || [];
+
 async function loadProducts() {
+
     try {
-        const response = await fetch(API_URL);
+
+        const response =
+            await fetch(API_URL);
 
         if (!response.ok) {
             throw new Error("Failed to load products");
         }
 
-        const data = await response.json();
+        const data =
+            await response.json();
 
-        allProducts = data.products.slice(0, 12);
+        allProducts =
+            data.products.slice(0, 12);
 
         createControls();
+
         displayProducts(allProducts);
 
     } catch (error) {
+
         console.error(error);
 
         productContainer.innerHTML =
@@ -27,30 +38,41 @@ async function loadProducts() {
     }
 }
 
+
 function createControls() {
 
-    const searchInput = document.createElement("input");
+    const searchInput =
+        document.createElement("input");
 
     searchInput.type = "text";
-    searchInput.placeholder = "Search products...";
+    searchInput.placeholder =
+        "Search products...";
     searchInput.id = "searchInput";
 
-    const categoryFilter = document.createElement("select");
 
-    categoryFilter.id = "categoryFilter";
+    const categoryFilter =
+        document.createElement("select");
+
+    categoryFilter.id =
+        "categoryFilter";
 
     categoryFilter.innerHTML =
         '<option value="all">All Categories</option>';
 
+
     const categories = [
         ...new Set(
-            allProducts.map(product => product.category)
+            allProducts.map(
+                product => product.category
+            )
         )
     ];
 
+
     categories.forEach(category => {
 
-        const option = document.createElement("option");
+        const option =
+            document.createElement("option");
 
         option.value = category;
         option.textContent = category;
@@ -58,15 +80,19 @@ function createControls() {
         categoryFilter.appendChild(option);
     });
 
-    const sortSelect = document.createElement("select");
 
-    sortSelect.id = "sortSelect";
+    const sortSelect =
+        document.createElement("select");
+
+    sortSelect.id =
+        "sortSelect";
 
     sortSelect.innerHTML = `
         <option value="default">Sort By</option>
         <option value="low">Price: Low to High</option>
         <option value="high">Price: High to Low</option>
     `;
+
 
     productContainer.parentElement.insertBefore(
         searchInput,
@@ -82,6 +108,7 @@ function createControls() {
         sortSelect,
         productContainer
     );
+
 
     searchInput.addEventListener(
         "input",
@@ -99,21 +126,29 @@ function createControls() {
     );
 }
 
+
 function displayProducts(products) {
 
     productContainer.innerHTML = "";
 
+
     if (products.length === 0) {
+
         productContainer.innerHTML =
             "<p>No products found.</p>";
+
         return;
     }
 
+
     products.forEach(product => {
 
-        const card = document.createElement("div");
+        const card =
+            document.createElement("div");
 
-        card.className = "product-card";
+        card.className =
+            "product-card";
+
 
         card.innerHTML = `
             <img
@@ -133,23 +168,35 @@ function displayProducts(products) {
                 Category: ${product.category}
             </p>
 
-            <button>Add to Cart</button>
+            <button
+                onclick="addToCart(${product.id})">
+                Add to Cart
+            </button>
         `;
+
 
         productContainer.appendChild(card);
     });
 }
 
+
 function filterProducts() {
 
     const searchInput =
-        document.getElementById("searchInput");
+        document.getElementById(
+            "searchInput"
+        );
 
     const categoryFilter =
-        document.getElementById("categoryFilter");
+        document.getElementById(
+            "categoryFilter"
+        );
 
     const sortSelect =
-        document.getElementById("sortSelect");
+        document.getElementById(
+            "sortSelect"
+        );
+
 
     const searchText =
         searchInput.value.toLowerCase();
@@ -159,6 +206,7 @@ function filterProducts() {
 
     const sortValue =
         sortSelect.value;
+
 
     let filteredProducts =
         allProducts.filter(product => {
@@ -170,27 +218,78 @@ function filterProducts() {
 
             const matchesCategory =
                 selectedCategory === "all" ||
-                product.category === selectedCategory;
+                product.category ===
+                    selectedCategory;
 
-            return matchesSearch &&
-                   matchesCategory;
+            return (
+                matchesSearch &&
+                matchesCategory
+            );
         });
+
 
     if (sortValue === "low") {
 
         filteredProducts.sort(
-            (a, b) => a.price - b.price
+            (a, b) =>
+                a.price - b.price
         );
     }
+
 
     if (sortValue === "high") {
 
         filteredProducts.sort(
-            (a, b) => b.price - a.price
+            (a, b) =>
+                b.price - a.price
         );
     }
 
-    displayProducts(filteredProducts);
+
+    displayProducts(
+        filteredProducts
+    );
 }
+
+
+// ============================
+// SHOPPING CART
+// ============================
+
+function addToCart(productId) {
+
+    const existingItem =
+        cart.find(
+            item => item.id === productId
+        );
+
+
+    if (existingItem) {
+
+        existingItem.quantity++;
+
+    } else {
+
+        cart.push({
+            id: productId,
+            quantity: 1
+        });
+    }
+
+
+    saveCart();
+
+    alert("Product added to cart!");
+}
+
+
+function saveCart() {
+
+    localStorage.setItem(
+        "cart",
+        JSON.stringify(cart)
+    );
+}
+
 
 loadProducts();
